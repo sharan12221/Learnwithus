@@ -1,7 +1,8 @@
-import bs4 as bs
-import requests
-import winsound
+import sys
 import time
+import requests
+from bs4 import BeautifulSoup
+
 
 def track_price(url, target_price):
     headers = {
@@ -9,20 +10,42 @@ def track_price(url, target_price):
     }
 
     response = requests.get(url, headers=headers)
-    soup = bs.BeautifulSoup(response.content, 'html.parser')
+    soup = BeautifulSoup(response.content, 'html.parser')
     price_element = soup.find('span', class_='a-price-whole')
-    
+
     if price_element is not None:
         price = price_element.text.strip().replace(',', '').replace('₹', '').replace(' ', '')
         current_price = float(price)
 
         if current_price < target_price:
             print("Price decreased! Book now.")
-            winsound.Beep(2500, 1000)
+
+            # Perform platform-independent alert/notification
+            notify_user()
         else:
             print("Price is high. Please wait for the best deal.")
     else:
         print("Price element not found.")
+
+
+def notify_user():
+    # Perform platform-independent alert/notification
+    if sys.platform.startswith('linux'):
+        # Linux notification (requires libnotify-bin package)
+        title = "Price Alert"
+        message = "Price decreased! Book now."
+        command = f'notify-send "{title}" "{message}"'
+        subprocess.call(command, shell=True)
+    elif sys.platform.startswith('darwin'):
+        # macOS notification
+        title = "Price Alert"
+        message = "Price decreased! Book now."
+        command = f'display notification "{message}" with title "{title}"'
+        subprocess.call(["osascript", "-e", command])
+    else:
+        # Default print-based notification
+        print('\a')  # Emit a beep sound
+
 
 def main():
     url = input("Enter the product URL: ")
@@ -31,6 +54,7 @@ def main():
     while True:
         track_price(url, target_price)
         time.sleep(60)  # Track price every minute
+
 
 if __name__ == "__main__":
     main()
